@@ -10,6 +10,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Bullet.h"
 #include "Blueprint/UserWidget.h"
+#include "CableComponent.h"
+#include "Hook.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ATeamIptimeCharacter
@@ -56,6 +58,11 @@ ATeamIptimeCharacter::ATeamIptimeCharacter()
 		Weapon->SetSkeletalMesh(SM_WEAPON.Object);
 	Weapon->SetupAttachment(GetMesh(), TEXT("Weapon"));
 
+	Wire = CreateDefaultSubobject<UCableComponent>(TEXT("Wire"));
+	//Wire->AttachEndTo.OverrideComponent = Hook;
+	Wire->SetCollisionProfileName(TEXT("NoCollision"));
+	Wire->SetVisibility(false);
+	Wire->SetupAttachment(GetMesh(), TEXT("TwoHandedWeapon"));
 
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -97.f));
 	GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
@@ -66,6 +73,7 @@ ATeamIptimeCharacter::ATeamIptimeCharacter()
 	SprintSpeedRate = 1.4f;
 	FireWaitingTime = 0.3f;
 	WeaponReboundDistance = 20.f;
+
 
 	CameraBoom->SocketOffset = FVector(0.f, 55.f, 65.f);
 	CameraBoom->TargetArmLength = 130.f;
@@ -96,8 +104,7 @@ ATeamIptimeCharacter::ATeamIptimeCharacter()
 	if (UI_CROSSHAIR.Succeeded())
 		CrossHair = UI_CROSSHAIR.Class;
 
-	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
-	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+	WireLength = 1000.f;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -109,6 +116,8 @@ void ATeamIptimeCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 	check(PlayerInputComponent);
 	//PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	//PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+
+	PlayerInputComponent->BindAction("Wire", IE_Pressed, this, &ATeamIptimeCharacter::ThrowHook);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ATeamIptimeCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ATeamIptimeCharacter::MoveRight);
@@ -136,7 +145,8 @@ void ATeamIptimeCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 void ATeamIptimeCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	Hook = GetWorld()->SpawnActor<AHook>(AHook::StaticClass());
+	Wire->AttachEndTo.OtherActor = Hook;
 	CreateWidget(Cast<APlayerController>(GetController()), CrossHair)->AddToPlayerScreen();
 }
 
@@ -268,6 +278,29 @@ void ATeamIptimeCharacter::Shoot()
 	GetWorld()->SpawnActor<ABullet>(ABullet::StaticClass(), muzzle + bulletRot.Vector() * 20.f, bulletRot);
 }
 
+void ATeamIptimeCharacter::ThrowHook()
+{
+	FHitResult hit;
+	FVector start = FollowCamera->GetComponentLocation(),
+		end = FollowCamera->GetComponentLocation() + FollowCamera->GetComponentRotation().Vector() * (WireLength + 200.f);
+	FVector muzzle = GetMesh()->GetSocketLocation(TEXT("TwoHandedWeapon"));
+	FVector WireDestination;
+
+	if (GetWorld()->LineTraceSingleByChannel(hit, start, end,
+		ECC_GameTraceChannel1, FCollisionQueryParams(NAME_None, false, this)))
+	{
+		WireDestination = muzzle + (hit.ImpactPoint - muzzle).GetSafeNormal() * WireLength;
+	}
+	else
+	{
+		WireDestination = muzzle + (end - muzzle).GetSafeNormal() * WireLength;
+	}
+
+	CurrentState = (uint8)ECharacterState::E_WIREACTION;
+	Wire->SetVisibility(true);
+	Hook->Shoot(GetMesh(), WireDestination);
+}
+
 FVector ATeamIptimeCharacter::CalculateIKHandLocation(bool isRightHands)
 {
 	float percentOfFireWaitingElapsedTime = FireWaitingElapsedTime / FireWaitingTime;
@@ -304,6 +337,12 @@ void ATeamIptimeCharacter::CalculateWeaponRotation(float DeltaSeconds)
 	{
 		Weapon->SetRelativeRotation(FRotator::ZeroRotator);
 	}
+}
+
+void ATeamIptimeCharacter::FinishWireAction()
+{
+	Wire->SetVisibility(false);
+	CurrentState = (uint8)ECharacterState::E_IDLE;
 }
 
 void ATeamIptimeCharacter::TurnAtRate(float Rate)

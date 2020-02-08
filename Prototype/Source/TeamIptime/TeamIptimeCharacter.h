@@ -14,6 +14,7 @@ enum class ECharacterState : uint8
 	E_SPRINT = 3,
 	E_AVOID = 4,
 	E_ACTION = 5,
+	E_WIREACTION = 6,
 	E_CROUNCH = 1 << 4
 };
 
@@ -35,6 +36,10 @@ class ATeamIptimeCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UUserWidget> CrossHair;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UCableComponent* Wire;
+
 
 	FVector LocalDirection;
 	FVector AnimDirection;
@@ -77,6 +82,10 @@ public:
 	TMap<uint8, FVector> RightHandRelativePosMap;
 	FVector LeftHandOffset;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class AHook* Hook;
+
+	float WireLength;
 protected:
 
 	/** Resets HMD orientation in VR. */
@@ -118,6 +127,7 @@ protected:
 
 	void CalculateRateOfFire(float DeltaSeconds);
 	void Shoot();
+	void ThrowHook();
 
 	UFUNCTION(BlueprintCallable)
 	FVector CalculateIKHandLocation(bool isRightHands);
@@ -139,5 +149,7 @@ public:
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
+
+	void FinishWireAction();
 };
 
