@@ -47,6 +47,10 @@ void AHook::Tick(float DeltaTime)
 		{
 			UE_LOG(TIP, Warning, TEXT("Block"));
 			CurrentWireState = EWireState::E_RECOIL;
+			FVector muzzle = OriginLocationMesh->GetSocketLocation(TEXT("TwoHandedWeapon"));
+			ATeamIptimeCharacter* owner = Cast<ATeamIptimeCharacter>(OriginLocationMesh->GetOwner());
+			FVector Distance = (hit.ImpactPoint - muzzle);
+			owner->DragToWire(Distance * 2.f + FVector::UpVector * Distance.Size());
 			return;
 		}
 		FVector LocToGoalDir = (WireDestination - GetActorLocation()).GetSafeNormal();
@@ -71,6 +75,7 @@ void AHook::Tick(float DeltaTime)
 			Hook->SetVisibility(false);
 			ATeamIptimeCharacter* owner = Cast<ATeamIptimeCharacter>(OriginLocationMesh->GetOwner());
 			owner->FinishWireAction();
+			Hook->SetCollisionProfileName(TEXT("NoCollision"));
 			return;
 		}
 	}
@@ -85,5 +90,6 @@ void AHook::Shoot(USkeletalMeshComponent * OriginLocationMesh, FVector Destinati
 	WireDestination = Destination;
 	Hook->SetVisibility(true);
 	CurrentWireState = EWireState::E_EJACULATE;
+	Hook->SetCollisionProfileName(TEXT("Hook"));
 }
 

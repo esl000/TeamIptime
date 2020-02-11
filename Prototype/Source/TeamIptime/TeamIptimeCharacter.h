@@ -86,6 +86,8 @@ public:
 	class AHook* Hook;
 
 	float WireLength;
+
+	float Hp;
 protected:
 
 	/** Resets HMD orientation in VR. */
@@ -129,6 +131,8 @@ protected:
 	void Shoot();
 	void ThrowHook();
 
+	void Zoom(float Axis);
+
 	UFUNCTION(BlueprintCallable)
 	FVector CalculateIKHandLocation(bool isRightHands);
 
@@ -151,5 +155,11 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	void FinishWireAction();
+
+	void DragToWire(FVector velocity);
+	void PullObject(AActor* actor);
+
+	UFUNCTION()
+	void Hit(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 };
 

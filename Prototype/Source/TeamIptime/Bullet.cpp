@@ -20,6 +20,9 @@ ABullet::ABullet()
 		Body->SetStaticMesh(SM_BODY.Object);
 
 	Body->SetRelativeScale3D(FVector(0.05f, 0.05f, 0.05f));
+	Body->SetNotifyRigidBodyCollision(true);
+	Body->SetCollisionProfileName(TEXT("Bullet"));
+	Body->OnComponentHit.AddUniqueDynamic(this, &ABullet::OnHit);
 	Movement->ProjectileGravityScale = 0.01f;
 }
 
@@ -28,5 +31,19 @@ void ABullet::BeginPlay()
 {
 	Super::BeginPlay();
 	Movement->SetVelocityInLocalSpace(FVector::ForwardVector * 4000.f);
+}
+
+void ABullet::OnHit(UPrimitiveComponent * HitComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, FVector NormalImpulse, const FHitResult & Hit)
+{
+	if (ACharacter* target = Cast<ACharacter>(OtherActor))
+	{
+		target->TakeDamage(10.f, FDamageEvent(), OwnerController, this);
+	}
+	Destroy();
+}
+
+void ABullet::Init(AController * ownerController)
+{
+	OwnerController = ownerController;
 }
 

@@ -105,6 +105,10 @@ ATeamIptimeCharacter::ATeamIptimeCharacter()
 		CrossHair = UI_CROSSHAIR.Class;
 
 	WireLength = 1000.f;
+
+	OnTakeAnyDamage.AddUniqueDynamic(this, &ATeamIptimeCharacter::Hit);
+
+	Hp = 100.f;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -133,6 +137,8 @@ void ATeamIptimeCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 	PlayerInputComponent->BindAxis("Crounch", this, &ATeamIptimeCharacter::ToggleCrounching);
 	PlayerInputComponent->BindAxis("Fire", this, &ATeamIptimeCharacter::ToggleFire);
 	PlayerInputComponent->BindAxis("Sprint", this, &ATeamIptimeCharacter::ToggleSprint);
+
+	PlayerInputComponent->BindAxis("Zoom", this, &ATeamIptimeCharacter::Zoom);
 
 	// handle touch devices
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &ATeamIptimeCharacter::TouchStarted);
@@ -265,7 +271,7 @@ void ATeamIptimeCharacter::Shoot()
 	FVector muzzle = Weapon->GetSocketLocation(TEXT("Muzzle"));
 	FRotator bulletRot;
 
-	if (GetWorld()->LineTraceSingleByChannel(hit, start, end,
+	if (GetWorld()->LineTraceSingleByObjectType(hit, start, end,
 		ECC_GameTraceChannel1, FCollisionQueryParams(NAME_None, false, this)))
 	{
 		bulletRot = (hit.ImpactPoint - muzzle).GetSafeNormal().ToOrientationRotator();
@@ -299,6 +305,15 @@ void ATeamIptimeCharacter::ThrowHook()
 	CurrentState = (uint8)ECharacterState::E_WIREACTION;
 	Wire->SetVisibility(true);
 	Hook->Shoot(GetMesh(), WireDestination);
+}
+
+void ATeamIptimeCharacter::Zoom(float Axis)
+{
+	if (CurrentState != (uint8)ECharacterState::E_SPRINT && Axis > 0.5f)
+		CameraBoom->TargetArmLength = FMath::Lerp(CameraBoom->TargetArmLength, 40.f, 4.f * GetWorld()->DeltaTimeSeconds);
+	else
+		CameraBoom->TargetArmLength = FMath::Lerp(CameraBoom->TargetArmLength, 130.f, 4.f * GetWorld()->DeltaTimeSeconds);
+
 }
 
 FVector ATeamIptimeCharacter::CalculateIKHandLocation(bool isRightHands)
@@ -343,6 +358,32 @@ void ATeamIptimeCharacter::FinishWireAction()
 {
 	Wire->SetVisibility(false);
 	CurrentState = (uint8)ECharacterState::E_IDLE;
+}
+
+void ATeamIptimeCharacter::DragToWire(FVector velocity)
+{
+	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+	GetCharacterMovement()->Velocity = velocity;
+}
+
+void ATeamIptimeCharacter::PullObject(AActor * actor)
+{
+}
+
+void ATeamIptimeCharacter::Hit(AActor * DamagedActor, float Damage, const UDamageType * DamageType, AController * InstigatedBy, AActor * DamageCauser)
+{
+	if (Hp <= 0.f)
+		return;
+
+	Hp -= Damage;
+
+	if (Hp <= 0.f)
+	{
+		GetCharacterMovement()->DisableMovement();
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		GetMesh()->SetAllBodiesSimulatePhysics(true);
+	}
 }
 
 void ATeamIptimeCharacter::TurnAtRate(float Rate)
