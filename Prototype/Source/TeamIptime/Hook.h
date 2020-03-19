@@ -30,11 +30,11 @@ class TEAMIPTIME_API AHook : public AActor
 	FVector WireDestination;
 	FVector StartPosition;
 
-	EWireState CurrentWireState;
 	
 public:	
 	// Sets default values for this actor's properties
 	AHook();
+	EWireState CurrentWireState;
 
 protected:
 	// Called when the game starts or when spawned

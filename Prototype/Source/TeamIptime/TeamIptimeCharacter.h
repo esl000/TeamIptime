@@ -15,7 +15,8 @@ enum class ECharacterState : uint8
 	E_AVOID = 4,
 	E_ACTION = 5,
 	E_WIREACTION = 6,
-	E_CROUNCH = 1 << 4
+	E_CROUNCH = 1 << 4,
+	E_IRONSIGHT = 1 << 5
 };
 
 UCLASS(config=Game)
@@ -59,6 +60,9 @@ public:
 	float SprintSpeedRate;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float IronSightSpeedRate;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float OriginSpeed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -87,7 +91,21 @@ public:
 
 	float WireLength;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Hp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool IsIronSight;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool IsOpenWeaponSettingUI;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	bool IsEquipWeapon;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TSubclassOf<UCameraShake> SprintCameraShake;
+
 protected:
 
 	/** Resets HMD orientation in VR. */
@@ -130,6 +148,8 @@ protected:
 	void CalculateRateOfFire(float DeltaSeconds);
 	void Shoot();
 	void ThrowHook();
+
+	void SelectWeapon(float axis);
 
 	void Zoom(float Axis);
 

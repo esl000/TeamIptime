@@ -12,6 +12,7 @@
 #include "Blueprint/UserWidget.h"
 #include "CableComponent.h"
 #include "Hook.h"
+#include "GameFramework/WorldSettings.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ATeamIptimeCharacter
@@ -69,10 +70,13 @@ ATeamIptimeCharacter::ATeamIptimeCharacter()
 	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
-	CameraBoom->bEnableCameraLag = true;
+	CameraBoom->bEnableCameraLag = false;
 	SprintSpeedRate = 1.4f;
+	IronSightSpeedRate = 0.6f;
 	FireWaitingTime = 0.3f;
 	WeaponReboundDistance = 20.f;
+
+	IsEquipWeapon = true;
 
 
 	CameraBoom->SocketOffset = FVector(0.f, 55.f, 65.f);
@@ -108,7 +112,13 @@ ATeamIptimeCharacter::ATeamIptimeCharacter()
 
 	OnTakeAnyDamage.AddUniqueDynamic(this, &ATeamIptimeCharacter::Hit);
 
-	Hp = 100.f;
+	Hp = 1000.f;
+
+	static ConstructorHelpers::FClassFinder<UCameraShake> CS_SPRINT(TEXT("Blueprint'/Game/ThirdPersonCPP/Blueprints/SprintCameraShake.SprintCameraShake_C'"));
+	if (CS_SPRINT.Succeeded())
+		SprintCameraShake = CS_SPRINT.Class;
+
+
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -140,6 +150,8 @@ void ATeamIptimeCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 
 	PlayerInputComponent->BindAxis("Zoom", this, &ATeamIptimeCharacter::Zoom);
 
+	PlayerInputComponent->BindAxis("SelectWeapon", this, &ATeamIptimeCharacter::SelectWeapon);
+
 	// handle touch devices
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &ATeamIptimeCharacter::TouchStarted);
 	PlayerInputComponent->BindTouch(IE_Released, this, &ATeamIptimeCharacter::TouchStopped);
@@ -162,16 +174,43 @@ void ATeamIptimeCharacter::Tick(float DeltaSeconds)
 
 	AnimDirection = FMath::Lerp(AnimDirection, LocalDirection, 7.f * DeltaSeconds);
 
+	GetCharacterMovement()->MaxWalkSpeed = OriginSpeed;
+
 	if (AnimDirection.Size() < 0.1f)
 		CurrentState = (uint8)ECharacterState::E_IDLE;
 	else
 		CurrentState = (uint8)ECharacterState::E_MOVEMENT;
 
+	if (IsSprint)
+	{
+		CurrentState |= (uint8)ECharacterState::E_SPRINT;
+		CameraBoom->TargetArmLength = FMath::Lerp(CameraBoom->TargetArmLength, 300.f, 6.f * DeltaSeconds);
+		GetCharacterMovement()->MaxWalkSpeed = SprintSpeedRate * OriginSpeed;
+		Cast<APlayerController>(GetController())->ClientPlayCameraShake(SprintCameraShake);
+	}
+	else
+	{
+		Cast<APlayerController>(GetController())->ClientStopCameraShake(SprintCameraShake);
+	}
+
+	if (IsIronSight)
+	{
+		CurrentState |= (uint8)ECharacterState::E_IRONSIGHT;
+		GetCharacterMovement()->MaxWalkSpeed = IronSightSpeedRate * OriginSpeed;
+	}
+
 	if (IsCrounching())
+	{
 		CurrentState |= (uint8)ECharacterState::E_CROUNCH;
+		GetCharacterMovement()->MaxWalkSpeed = IronSightSpeedRate * OriginSpeed;
+	}
+
 
 	CalculateRateOfFire(DeltaSeconds);
 	CalculateWeaponRotation(DeltaSeconds);
+
+	if (Hook->CurrentWireState == EWireState::E_IDLE)
+		Hook->SetActorLocation(GetMesh()->GetSocketLocation(TEXT("TwoHandedWeapon")));
 
 
 	//calc hand offset
@@ -203,11 +242,11 @@ void ATeamIptimeCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector L
 
 void ATeamIptimeCharacter::ToggleCrounching(float axis)
 {
-	if (axis > 0.f && !GetCharacterMovement()->IsCrouching())
+	if (axis > 0.f && !GetCharacterMovement()->IsCrouching() && !IsSprint)
 	{
 		Crouch();
 	}
-	else if(axis < 0.0001f && GetCharacterMovement()->IsCrouching())
+	else if((axis < 0.0001f && GetCharacterMovement()->IsCrouching()) || IsSprint)
 	{
 		UnCrouch();
 	}
@@ -215,6 +254,9 @@ void ATeamIptimeCharacter::ToggleCrounching(float axis)
 
 void ATeamIptimeCharacter::ToggleFire(float axis)
 {
+	if (!IsEquipWeapon)
+		return;
+
 	if (IsSprint)
 	{
 		IsFire = false;
@@ -229,12 +271,10 @@ void ATeamIptimeCharacter::ToggleSprint(float axis)
 	if (axis > 0.f && LocalDirection.X > 0.3f && FMath::Abs(LocalDirection.Y) < 0.001f)
 	{
 		IsSprint = true;
-		GetCharacterMovement()->MaxWalkSpeed = SprintSpeedRate * OriginSpeed;
 	}
 	else
 	{
 		IsSprint = false;
-		GetCharacterMovement()->MaxWalkSpeed = OriginSpeed;
 	}
 
 }
@@ -286,6 +326,9 @@ void ATeamIptimeCharacter::Shoot()
 
 void ATeamIptimeCharacter::ThrowHook()
 {
+	if (IsEquipWeapon)
+		return;
+
 	FHitResult hit;
 	FVector start = FollowCamera->GetComponentLocation(),
 		end = FollowCamera->GetComponentLocation() + FollowCamera->GetComponentRotation().Vector() * (WireLength + 200.f);
@@ -307,12 +350,40 @@ void ATeamIptimeCharacter::ThrowHook()
 	Hook->Shoot(GetMesh(), WireDestination);
 }
 
+void ATeamIptimeCharacter::SelectWeapon(float axis)
+{
+	float newTimeDilation;
+
+	if (axis > 0.1f)
+	{
+		IsOpenWeaponSettingUI = true;
+		newTimeDilation = FMath::Max(GetWorld()->GetWorldSettings()->TimeDilation - 3.f * GetWorld()->DeltaTimeSeconds / GetWorld()->GetWorldSettings()->TimeDilation, 0.2f);
+		GetWorld()->GetWorldSettings()->SetTimeDilation(newTimeDilation);
+	}
+	else
+	{
+		IsOpenWeaponSettingUI = false;
+		newTimeDilation = FMath::Min(GetWorld()->GetWorldSettings()->TimeDilation + 3.f * GetWorld()->DeltaTimeSeconds / GetWorld()->GetWorldSettings()->TimeDilation, 1.f);
+		GetWorld()->GetWorldSettings()->SetTimeDilation(newTimeDilation);
+	}
+}
+
 void ATeamIptimeCharacter::Zoom(float Axis)
 {
-	if (CurrentState != (uint8)ECharacterState::E_SPRINT && Axis > 0.5f)
-		CameraBoom->TargetArmLength = FMath::Lerp(CameraBoom->TargetArmLength, 40.f, 4.f * GetWorld()->DeltaTimeSeconds);
+	if (!IsSprint && Axis > 0.5f)
+	{
+		IsIronSight = true;
+		CameraBoom->TargetArmLength = FMath::Lerp(CameraBoom->TargetArmLength, 40.f, 8.f * GetWorld()->DeltaTimeSeconds);
+	}
+	else if (!IsSprint && Axis < 0.5f)
+	{
+		IsIronSight = false;
+		CameraBoom->TargetArmLength = FMath::Lerp(CameraBoom->TargetArmLength, 130.f, 8.f * GetWorld()->DeltaTimeSeconds);
+	}
 	else
-		CameraBoom->TargetArmLength = FMath::Lerp(CameraBoom->TargetArmLength, 130.f, 4.f * GetWorld()->DeltaTimeSeconds);
+	{
+		IsIronSight = false;
+	}
 
 }
 
@@ -320,7 +391,7 @@ FVector ATeamIptimeCharacter::CalculateIKHandLocation(bool isRightHands)
 {
 	float percentOfFireWaitingElapsedTime = FireWaitingElapsedTime / FireWaitingTime;
 	FTransform parent = GetMesh()->GetSocketTransform(TEXT("rootTRF"), RTS_Component);
-	FVector handOffset = RightHandRelativePosMap[CurrentState];
+	FVector handOffset = FVector::ForwardVector;//RightHandRelativePosMap[CurrentState];
 
 	FVector reboundHead = GetMesh()->GetSocketTransform(TEXT("ReboundHead"), RTS_Component).GetLocation();
 	FVector reboundTail = GetMesh()->GetSocketTransform(TEXT("ReboundTail"), RTS_Component).GetLocation();

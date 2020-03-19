@@ -24,13 +24,18 @@ ABullet::ABullet()
 	Body->SetCollisionProfileName(TEXT("Bullet"));
 	Body->OnComponentHit.AddUniqueDynamic(this, &ABullet::OnHit);
 	Movement->ProjectileGravityScale = 0.01f;
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> SB_SOUND(TEXT("SoundWave'/Game/FPS_Weapon_Bundle/M1_Garand_Single-SoundBible_com-1941178963__online-audio-converter_com_.M1_Garand_Single-SoundBible_com-1941178963__online-audio-converter_com_'"));
+	if (SB_SOUND.Succeeded())
+		Sound = SB_SOUND.Object;
 }
 
 // Called when the game starts or when spawned
 void ABullet::BeginPlay()
 {
 	Super::BeginPlay();
-	Movement->SetVelocityInLocalSpace(FVector::ForwardVector * 4000.f);
+	Movement->SetVelocityInLocalSpace(FVector::ForwardVector * 8000.f);
+	GetWorld()->GetFirstPlayerController()->ClientPlaySoundAtLocation(Sound, GetActorLocation(), 0.5f);
 }
 
 void ABullet::OnHit(UPrimitiveComponent * HitComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, FVector NormalImpulse, const FHitResult & Hit)
