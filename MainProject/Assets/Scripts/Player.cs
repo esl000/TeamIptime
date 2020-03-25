@@ -8,11 +8,13 @@ public class Player : MonoBehaviour
     public Vector3 velocity;
     public Vector3 cameraOffset;
     public bool isAttack;
+    public Rigidbody body;
 
     // Start is called before the first frame update
     void Start()
     {
         cameraOffset = Camera.main.transform.position - transform.position;
+        body = GetComponent<Rigidbody>();
     }
 
     // Update is called once per frame
@@ -61,6 +63,7 @@ public class Player : MonoBehaviour
             Quaternion destLook = Quaternion.LookRotation(velocity, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, destLook, 7f * Time.deltaTime);
 
+            body.MovePosition(transform.position + 3f * Time.deltaTime * velocity);
             transform.position += 3f * Time.deltaTime * velocity;
             GetComponentInChildren<Animator>().SetBool("IsMove", true);
             GetComponentInChildren<Animator>().SetBool("IsAttack", false);
