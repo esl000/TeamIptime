@@ -270,7 +270,7 @@ public class MapGenerator : MonoBehaviour
 
         preset.Add(new List<Vector2Int>() { new Vector2Int(-1, 0), new Vector2Int(1, 0) }
         , new ModelSet(models[1], degree0));
-        preset.Add(new List<Vector2Int>() { new Vector2Int(0, 1), new Vector2Int(0, -1) }
+        preset.Add(new List<Vector2Int>(){ new Vector2Int(0, 1), new Vector2Int(0, -1)}
         , new ModelSet(models[1], degree90));
 
         preset.Add(new List<Vector2Int>() { new Vector2Int(-1, 0), new Vector2Int(0, 1) }

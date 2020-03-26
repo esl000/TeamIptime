@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-public class InventorySlot : MonoBehaviour, IPointerDownHandler
+public class InventorySlot : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerEnterHandler, IPointerExitHandler
 {
     public Vector2Int SlotIndex;
 
@@ -39,11 +39,93 @@ public class InventorySlot : MonoBehaviour, IPointerDownHandler
 
     private void Awake()
     {
-        _icon = GetComponentsInChildren<Image>()[1];
+        Image[] images = GetComponentsInChildren<Image>();
+        _icon = images[images.Length - 1];
     }
+
+    public void AddItem(Item item)
+    {
+        OwnerInventory[SlotIndex] = item;
+    }
+
+    public Item RemoveItem()
+    {
+        Item item = SlotItem;
+        OwnerInventory[SlotIndex] = null;
+        return item;
+    }
+
+    int clickCount = 0;
+    float clickTime = 0f;
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        throw new System.NotImplementedException();
+        //EventSystem.current.SetSelectedGameObject(gameObject);
+
+        if(clickCount == 0 || Time.time - clickTime > 0.6f)
+        {
+            clickCount = 1;
+            if (SlotItem != null)
+            {
+                MouseInventory.Instance.SelectItem(this);
+                MouseInventory.Instance.TargetSlot = this;
+            }
+        }
+        else
+        {
+            if (SlotItem != null)
+            {
+                Debug.Log("Use " + SlotItem.Name);
+                RemoveItem();
+                clickCount = 0;
+            }
+        }
+
+        clickTime = Time.time;
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        //EventSystem.current.SetSelectedGameObject(null);
+
+        if (MouseInventory.Instance.IsDrag)
+        {
+            InventorySlot targetSlot = MouseInventory.Instance.TargetSlot;
+
+            if (targetSlot == null)
+            {
+                Debug.Log("Drop");
+                MouseInventory.Instance.DropItem();
+                return;
+            }
+
+            if (targetSlot.SlotItem != null)
+            {
+                Debug.Log("Swap");
+                MouseInventory.Instance.OriginItemSlot.AddItem(targetSlot.RemoveItem());
+                MouseInventory.Instance.TargetSlot.AddItem(MouseInventory.Instance.DropItem());
+            }
+            else
+            {
+                Debug.Log("Move");
+                MouseInventory.Instance.TargetSlot.AddItem(MouseInventory.Instance.DropItem());
+            }
+        }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (MouseInventory.Instance.IsDrag)
+        {
+            MouseInventory.Instance.TargetSlot = this;
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (MouseInventory.Instance.IsDrag && MouseInventory.Instance.TargetSlot == this)
+        {
+            MouseInventory.Instance.TargetSlot = null;
+        }
     }
 }
