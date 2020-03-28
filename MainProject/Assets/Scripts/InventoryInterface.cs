@@ -4,6 +4,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
+public enum EInventoryType
+{
+    E_DEFAULT,
+    E_PLAYER,
+    E_COOKING,
+    E_DROP
+}
+
 public class InventoryInterface : MonoBehaviour
 {
     [SerializeField] protected Vector2Int _inventorySize;
@@ -11,6 +19,7 @@ public class InventoryInterface : MonoBehaviour
     protected InventorySlot[] _slots;
 
     public Vector2Int InventorySize { get => _inventorySize; }
+    public virtual EInventoryType GetInventoryType() { return EInventoryType.E_DEFAULT; }
 
     protected InventoryData _owner;
     public InventoryData Owner
@@ -52,6 +61,11 @@ public class InventoryInterface : MonoBehaviour
         UpdateInterface();
     }
 
+    public bool IsFull()
+    {
+        return Owner.IsFull();
+    }
+
     public bool AddItem(Item item)
     {
         bool retVal = Owner.AddItem(item);
@@ -71,7 +85,7 @@ public class InventoryInterface : MonoBehaviour
         return inventory != null && (inventory.InventorySize == InventorySize);
     }
 
-    protected void Awake()
+    protected virtual void Awake()
     {
         _slots = GetComponentsInChildren<InventorySlot>();
         for (int i = 0; i < _slots.Length; ++i)
@@ -80,7 +94,7 @@ public class InventoryInterface : MonoBehaviour
         }
     }
 
-    protected void OnEnable()
+    protected virtual void OnEnable()
     {
         UpdateInterface();
     }

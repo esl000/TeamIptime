@@ -488,7 +488,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1813115593773484736}
   - component: {fileID: 1813115593773484750}
-  - component: {fileID: 1813115593773484737}
   - component: {fileID: 1813115593773484751}
   m_Layer: 5
   m_Name: CookInventory
@@ -533,19 +532,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1813115593773484739}
   m_CullTransparentMesh: 0
---- !u!114 &1813115593773484737
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1813115593773484739}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 669f1a5806795c648a3559ea45aae000, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _inventorySize: {x: 5, y: 1}
 --- !u!114 &1813115593773484751
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -558,6 +544,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c839ca1ec9430e64f88e995633249df8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _inventorySize: {x: 5, y: 1}
 --- !u!1 &1813115593790922644
 GameObject:
   m_ObjectHideFlags: 0

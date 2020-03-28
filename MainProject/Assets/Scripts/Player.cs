@@ -36,7 +36,7 @@ public class Player : MonoBehaviour
         inventory.AddItem(boots1);
         inventory.AddItem(boots2);
 
-        GameObject.FindGameObjectWithTag("PlayerInventory").GetComponent<InventoryInterface>().Owner = inventory;
+        PlayerInventory.Instance.Owner = inventory;
     }
 
     // Update is called once per frame

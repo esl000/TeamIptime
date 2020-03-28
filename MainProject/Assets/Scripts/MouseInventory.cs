@@ -23,7 +23,6 @@ public class MouseInventory : InventoryInterface
     }
 
     public InventorySlot TargetSlot { get; set; }
-    public InventorySlot OriginItemSlot { get; private set; }
     public bool IsDrag { get; private set; }
 
     private void Initialize()
@@ -35,7 +34,6 @@ public class MouseInventory : InventoryInterface
     public void SelectItem(InventorySlot originSlot)
     {
         Owner[Vector2Int.zero] = originSlot.RemoveItem();
-        OriginItemSlot = originSlot;
         UpdateInterface();
         IsDrag = true;
     }

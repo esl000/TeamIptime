@@ -44,6 +44,11 @@ public class InventoryData
         return true;
     }
 
+    public bool IsFull()
+    {
+        return Array.FindIndex(_inventory, (i) => i == null) < 0;
+    }
+
     public void Clear()
     {
         _inventory = new Item[_inventorySize.x * _inventorySize.y];

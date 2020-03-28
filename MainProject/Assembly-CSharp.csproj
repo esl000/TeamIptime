@@ -65,8 +65,10 @@
     <Compile Include="Assets\DungeonModules\Scripts\DoorAOpen.cs" />
     <Compile Include="Assets\Scripts\CookInterface.cs" />
     <Compile Include="Assets\Scripts\DataManager.cs" />
+    <Compile Include="Assets\Scripts\DropInventory.cs" />
     <Compile Include="Assets\Scripts\GameModule.cs" />
     <Compile Include="Assets\Scripts\IModule.cs" />
+    <Compile Include="Assets\Scripts\InventoryAction.cs" />
     <Compile Include="Assets\Scripts\InventoryData.cs" />
     <Compile Include="Assets\Scripts\InventoryInterface.cs" />
     <Compile Include="Assets\Scripts\InventorySlot.cs" />
@@ -74,6 +76,7 @@
     <Compile Include="Assets\Scripts\MapGenerator.cs" />
     <Compile Include="Assets\Scripts\MouseInventory.cs" />
     <Compile Include="Assets\Scripts\Player.cs" />
+    <Compile Include="Assets\Scripts\PlayerInventory.cs" />
     <Compile Include="Assets\Scripts\ResourceManager.cs" />
     <Compile Include="Assets\Scripts\Starter.cs" />
     <None Include="Assets\Fantasy Chess RPG Character - Arthur\readme.txt" />

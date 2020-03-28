@@ -2,8 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(InventoryInterface))]
-public class CookInterface : MonoBehaviour
+public class CookInterface : InventoryInterface
 {
     private static CookInterface _instance = null;
     public static CookInterface Instance
@@ -19,21 +18,16 @@ public class CookInterface : MonoBehaviour
             return _instance;
         }
     }
-
-    public InventoryData Data { get; private set; }
-    public bool IsOpen { get; private set; }
-
-    InventoryInterface CookInventoryInterface { get; set; }
-
-    // Start is called before the first frame update
-    void Awake()
+    public override EInventoryType GetInventoryType()
     {
-        CookInventoryInterface = GetComponent<InventoryInterface>();
+        return EInventoryType.E_COOKING;
     }
+
+    public static bool IsOpen { get; private set; }
 
     public static void ToggleCookInventory()
     {
-        if (!Instance.IsOpen)
+        if (!IsOpen)
             OpenCookInventory();
         else
             CloseCookInventory();
@@ -41,19 +35,20 @@ public class CookInterface : MonoBehaviour
 
     public static void OpenCookInventory()
     {
-        Instance.Data = new InventoryData(new Vector2Int(5, 1));
-        Instance.CookInventoryInterface.Owner = Instance.Data;
+        if(DropInventory)
+        InventoryAction.CurrentInventoryAction = InventoryCookAction.instance;
+        Instance.Owner = new InventoryData(new Vector2Int(5, 1));
         Instance.gameObject.SetActive(true);
-        Instance.IsOpen = true;
+        IsOpen = true;
     }
 
     public static void CloseCookInventory()
     {
-        GameObject.FindGameObjectWithTag("PlayerInventory").GetComponent<InventoryInterface>().AppendInventory(Instance.CookInventoryInterface);
-        Instance.Data = null;
-        Instance.CookInventoryInterface.Owner = null;
+        InventoryAction.CurrentInventoryAction = InventoryIdleAction.instance;
+        PlayerInventory.Instance.AppendInventory(Instance);
+        Instance.Owner = null;
         Instance.gameObject.SetActive(false);
-        Instance.IsOpen = false;
+        IsOpen = false;
     }
 
     public void Cook()
@@ -61,8 +56,8 @@ public class CookInterface : MonoBehaviour
         Debug.Log("Finish Cook");
         //조합식을 사용 아이템 리턴
         Item axe = new Item("axe", "", "", ResourceManager.GetResource<Sprite>("RPG_inventory_icons/axe"));
-        CookInventoryInterface.Clear();
-        GameObject.FindGameObjectWithTag("PlayerInventory").GetComponent<InventoryInterface>().AddItem(axe);
+        Clear();
+        PlayerInventory.Instance.AddItem(axe);
     }
 
     public void Cancel()

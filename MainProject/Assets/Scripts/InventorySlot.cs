@@ -76,7 +76,7 @@ public class InventorySlot : MonoBehaviour, IPointerDownHandler, IPointerUpHandl
             if (SlotItem != null)
             {
                 Debug.Log("Use " + SlotItem.Name);
-                RemoveItem();
+                InventoryAction.CurrentInventoryAction.Use(this);
                 clickCount = 0;
             }
         }
@@ -95,20 +95,19 @@ public class InventorySlot : MonoBehaviour, IPointerDownHandler, IPointerUpHandl
             if (targetSlot == null)
             {
                 Debug.Log("Drop");
-                MouseInventory.Instance.DropItem();
+                InventoryAction.CurrentInventoryAction.Drop(this);
                 return;
             }
 
             if (targetSlot.SlotItem != null)
             {
                 Debug.Log("Swap");
-                MouseInventory.Instance.OriginItemSlot.AddItem(targetSlot.RemoveItem());
-                MouseInventory.Instance.TargetSlot.AddItem(MouseInventory.Instance.DropItem());
+                InventoryAction.CurrentInventoryAction.Swap(MouseInventory.Instance.TargetSlot, this);
             }
             else
             {
                 Debug.Log("Move");
-                MouseInventory.Instance.TargetSlot.AddItem(MouseInventory.Instance.DropItem());
+                InventoryAction.CurrentInventoryAction.Move(MouseInventory.Instance.TargetSlot);
             }
         }
     }
